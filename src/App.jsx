@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import Error from './components/Error';
+import FinishScreen from './components/FinishScreen';
 import Header from './components/Header';
 import Loader from './components/Loader';
 import Main from './components/Main';
@@ -14,6 +15,7 @@ const initialState = {
   index: 0,
   answer: null,
   points: 0,
+  highScore: 0,
 };
 
 function reducer(state, action) {
@@ -53,16 +55,22 @@ function reducer(state, action) {
         answer: null,
       };
 
+    case 'finish':
+      return {
+        ...state,
+        status: 'finished',
+        highScore:
+          state.points > state.highScore ? state.points : state.highScore,
+      };
+
     default:
       throw new Error('Action unknown');
   }
 }
 
 function App() {
-  const [{ questions, status, index, answer, points }, dispatch] = useReducer(
-    reducer,
-    initialState
-  );
+  const [{ questions, status, index, answer, points, highScore }, dispatch] =
+    useReducer(reducer, initialState);
 
   const numQuestions = questions.length;
 
@@ -98,9 +106,21 @@ function App() {
               dispatch={dispatch}
               answer={answer}
             />
+            <NextButton
+              dispatch={dispatch}
+              answer={answer}
+              index={index}
+              numQuestions={numQuestions}
+            />
           </>
         )}
-        <NextButton dispatch={dispatch} answer={answer} />
+        {status === 'finished' && (
+          <FinishScreen
+            maxPoints={maxPoints}
+            points={points}
+            highScore={highScore}
+          />
+        )}
       </Main>
     </div>
   );
