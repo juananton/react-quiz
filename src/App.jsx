@@ -1,6 +1,8 @@
 import { useEffect, useReducer } from 'react';
+
 import Error from './components/Error';
 import FinishScreen from './components/FinishScreen';
+import Footer from './components/Footer';
 import Header from './components/Header';
 import Loader from './components/Loader';
 import Main from './components/Main';
@@ -8,6 +10,9 @@ import NextButton from './components/NextButton';
 import Progress from './components/Progress';
 import Question from './components/Question';
 import StartScreen from './components/StartScreen';
+import Timer from './components/Timer';
+
+const SECS_PER_QUESTION = 20;
 
 const initialState = {
   questions: [],
@@ -16,6 +21,7 @@ const initialState = {
   answer: null,
   points: 0,
   highScore: 0,
+  secondsRemaining: null,
 };
 
 function reducer(state, action) {
@@ -31,11 +37,13 @@ function reducer(state, action) {
         ...state,
         status: 'error',
       };
-    case 'start':
+    case 'start': {
       return {
         ...state,
         status: 'active',
+        secondsRemaining: state.questions.length * SECS_PER_QUESTION,
       };
+    }
     case 'newAnswer': {
       const question = state.questions.at(state.index);
 
@@ -70,14 +78,23 @@ function reducer(state, action) {
         status: 'ready',
       };
 
+    case 'tick':
+      return {
+        ...state,
+        secondsRemaining: state.secondsRemaining - 1,
+        status: state.secondsRemaining === 0 ? 'finished' : state.status,
+      };
+
     default:
       throw new Error('Action unknown');
   }
 }
 
 function App() {
-  const [{ questions, status, index, answer, points, highScore }, dispatch] =
-    useReducer(reducer, initialState);
+  const [
+    { questions, status, index, answer, points, highScore, secondsRemaining },
+    dispatch,
+  ] = useReducer(reducer, initialState);
 
   const numQuestions = questions.length;
 
@@ -86,8 +103,7 @@ function App() {
   useEffect(function () {
     fetch('http://localhost:3000/questions')
       .then(res => res.json())
-      .then(data => dispatch({ type: 'dataReceived', payload: data }))
-      .catch(err => dispatch({ type: 'dataFailed' }));
+      .then(data => dispatch({ type: 'dataReceived', payload: data }));
   }, []);
 
   return (
@@ -113,12 +129,15 @@ function App() {
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton
-              dispatch={dispatch}
-              answer={answer}
-              index={index}
-              numQuestions={numQuestions}
-            />
+            <Footer>
+              <Timer secondsRemaining={secondsRemaining} dispatch={dispatch} />
+              <NextButton
+                dispatch={dispatch}
+                answer={answer}
+                index={index}
+                numQuestions={numQuestions}
+              />
+            </Footer>
           </>
         )}
         {status === 'finished' && (
